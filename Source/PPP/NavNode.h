@@ -35,6 +35,11 @@ public:
 	UPROPERTY(EditDefaultsOnly, Category = "Node")
 		UStaticMeshComponent* NodeMeshComponent;
 
+	UMaterialInstanceDynamic* NodeMaterial = nullptr;
+
+	UPROPERTY(EditAnywhere, Category = "Node")
+	int32 TargetCapacity = 0;
+
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
 
@@ -50,4 +55,12 @@ public:
 	void DrawConnections(bool propogate = true);
 
 	TArray<ANavNode*>& GetConnectedNodes();
+
+	int32 TargetCount = 0;
+
+	bool StartTarget();
+	void EndTarget();
+
+private:
+	void SetColor();
 };

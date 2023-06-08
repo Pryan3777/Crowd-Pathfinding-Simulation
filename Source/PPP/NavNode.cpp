@@ -64,6 +64,9 @@ void ANavNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
 void ANavNode::BeginPlay()
 {
     AActor::BeginPlay();
+
+    NodeMaterial = NodeMeshComponent->CreateAndSetMaterialInstanceDynamic(0);
+    SetColor();
 }
 
 // Called every frame
@@ -212,4 +215,44 @@ void ANavNode::DrawConnections(bool propogate)
 TArray<ANavNode*>& ANavNode::GetConnectedNodes()
 {
     return ConnectedNodes;
+}
+
+bool ANavNode::StartTarget()
+{
+    if (TargetCount < TargetCapacity)
+    {
+        TargetCount++;
+        SetColor();
+        return true;
+    }
+    return false;
+}
+
+void ANavNode::EndTarget()
+{
+    TargetCount--;
+    SetColor();
+}
+
+void ANavNode::SetColor()
+{
+    if (TargetCapacity == 0)
+    {
+        NodeMaterial->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor::Gray);
+    }
+    else
+    {
+        if (TargetCount == 0)
+        {
+            NodeMaterial->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor::Green);
+        }
+        else if (TargetCount == TargetCapacity)
+        {
+            NodeMaterial->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor::Red);
+        }
+        else
+        {
+            NodeMaterial->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor::Yellow);
+        }
+    }
 }
