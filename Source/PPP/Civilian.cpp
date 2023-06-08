@@ -40,21 +40,13 @@ void ACivilian::Tick(float DeltaTime)
         FVector NewLocation = GetActorLocation() + (Direction * Speed * DeltaTime);
         SetActorLocation(NewLocation);
     }
-    else if (steps > 0)
+    else if (Path.Num() > 1)
     {
         UE_LOG(LogTemp, Log, TEXT("Choosing Next Node"));
         // Move to Next Node in Path
 
         // Update the path and steps
-        Path.RemoveAt(steps);
-        steps--;
-
-        // Calculate the movement direction
-        FVector Direction = (Path[0]->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-
-        // Move towards the next node based on the movement direction and speed
-        FVector NewLocation = GetActorLocation() + (Direction * Speed * DeltaTime);
-        SetActorLocation(NewLocation);
+        Path.RemoveAt(0);
     }
     else
     {
@@ -150,13 +142,14 @@ void ACivilian::Calculate()
                 if (NeighborCost < NeighborInfo._Cost)
                 {
                     NeighborInfo._Cost = NeighborCost;
+                    delete NeighborInfo._ParentNode; // Delete the previous _ParentNode
                     NeighborInfo._ParentNode = new FNavNodeInfo(CurrentNodeInfo._NavNode, CurrentNodeInfo._Cost, CurrentNodeInfo._Heuristic, CurrentNodeInfo._ParentNode);
                 }
             }
             else
             {
                 // Add to touched
-                FNavNodeInfo NeighborInfo(Neighbor, NeighborCost, CalculateHeuristic(Neighbor), &CurrentNodeInfo);
+                FNavNodeInfo NeighborInfo(Neighbor, NeighborCost, CalculateHeuristic(Neighbor), new FNavNodeInfo(CurrentNodeInfo._NavNode, CurrentNodeInfo._Cost, CurrentNodeInfo._Heuristic, CurrentNodeInfo._ParentNode));
                 TouchedNodes.Add(NeighborInfo);
             }
         }

@@ -27,12 +27,11 @@ private:
 	TArray<ANavNode*> Path;
 	ANavNode* StartNode;
 	ANavNode* TargetNode;
-	int steps = 0;
 
 	TArray<AActor*> AllNodes;
 
 	double distanceToContact = 100.0;
-	double Speed = 3.0;
+	double Speed = 150.0;
 
 	void Calculate();
 
