@@ -12,6 +12,13 @@
 
 #include "Civilian.generated.h"
 
+enum class CivilianStates : uint8
+{
+	Idle,
+	Pathing,
+	Calculating
+};
+
 UCLASS()
 class PPP_API ACivilian : public ACharacter
 {
@@ -32,6 +39,14 @@ private:
 
 	double distanceToContact = 100.0;
 	double Speed = 150.0;
+	double IdleMaxTime = 5.0;
+	double IdleMinTime = 1.0;
+	double IdleCurrentTime = 10.0;
+
+	FVector Direction;
+	FVector NewLocation;
+
+	CivilianStates state = CivilianStates::Calculating;
 
 	void Calculate();
 
@@ -39,6 +54,8 @@ private:
 	float CalculateDistance(ANavNode* NodeA, ANavNode* NodeB);
 
 	ANavNode* GetRandomNode() const;
+
+	void SetIdle();
 
 protected:
 	// Called when the game starts or when spawned

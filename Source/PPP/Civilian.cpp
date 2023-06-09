@@ -1,9 +1,5 @@
-// Fill out your copyright notice in the Description page of Project Settings.
-
-
 #include "Civilian.h"
 
-// Sets default values
 ACivilian::ACivilian()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
@@ -21,6 +17,7 @@ void ACivilian::BeginPlay()
     UGameplayStatics::GetAllActorsOfClass(GetWorld(), ANavNode::StaticClass(), AllNodes);
 	
 	StartNode = GetRandomNode();
+    StartNode->EndTarget();
     SetActorLocation(StartNode->GetActorLocation());
 	Path.Add(StartNode);
 }
@@ -29,47 +26,63 @@ void ACivilian::BeginPlay()
 void ACivilian::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
-    if (FVector::Distance(GetActorLocation(), Path[0]->GetActorLocation()) > distanceToContact)
-    {
-        // Move towards the node
-        UE_LOG(LogTemp, Log, TEXT("MOVE TOWARDS"));
-        // Calculate the movement direction
-        FVector Direction = (Path[0]->GetActorLocation() - GetActorLocation()).GetSafeNormal();
 
-        // Move towards the node based on the movement direction and speed
-        FVector NewLocation = GetActorLocation() + (Direction * Speed * DeltaTime);
+    // Act based on current State
+    switch(state)
+    {
+    case CivilianStates::Pathing:
+        
+        // Move Towards Target
+        Direction = (Path[0]->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+        NewLocation = GetActorLocation() + (Direction * Speed * DeltaTime);
         SetActorLocation(NewLocation);
-    }
-    else if (Path.Num() > 1)
-    {
-        UE_LOG(LogTemp, Log, TEXT("Choosing Next Node"));
-        // Move to Next Node in Path
 
-        // Update the path and steps
-        Path.RemoveAt(0);
-    }
-    else
-    {
-        // Calculate new Target and Path
+        if (FVector::Distance(GetActorLocation(), Path[0]->GetActorLocation()) < distanceToContact)
+        {
+            if (Path.Num() == 1)
+            {
+                SetIdle();
+                state = CivilianStates::Idle;
+            }
+            else
+            {
+                Path.RemoveAt(0);
+            }
+        }
+
+        break;
+
+    case CivilianStates::Calculating:
         StartNode = Path[0];
+        if(TargetNode) TargetNode->EndTarget();
         TargetNode = GetRandomNode();
 
         Calculate();
+
+        state = CivilianStates::Pathing;
+        break;
+
+    case CivilianStates::Idle:
+        IdleCurrentTime -= DeltaTime;
+        if (IdleCurrentTime < 0.0)
+        {
+            state = CivilianStates::Calculating;
+        }
+        break;
     }
 }
 
 void ACivilian::Calculate()
 {
     UE_LOG(LogTemp, Log, TEXT("CALCULATING ROUTE"));
-    // Clear the containers
+    // Reset Everything
     TouchedNodes.Empty();
     VisitedNodes.Empty();
     Path.Empty();
 
-    // Create the starting node info
     FNavNodeInfo StartNodeInfo(StartNode, 0.0f, CalculateHeuristic(StartNode), nullptr);
 
-    // Add starting node to touched nodes
+    // Add starting node to touched
     TouchedNodes.Add(StartNodeInfo);
 
     // A* Algorithm
@@ -121,6 +134,11 @@ void ACivilian::Calculate()
         TArray<ANavNode*> Neighbors = CurrentNodeInfo._NavNode->GetConnectedNodes();
         for (ANavNode* Neighbor : Neighbors)
         {
+            if (!Neighbor)
+            {
+                continue;
+            }
+
             // Check if already Visited
             if (VisitedNodes.ContainsByPredicate([&](const FNavNodeInfo& Info) { return Info._NavNode == Neighbor; }))
             {
@@ -130,7 +148,7 @@ void ACivilian::Calculate()
             // Calculate the cost to the neighbor
             float NeighborCost = CurrentNodeInfo._Cost + CalculateDistance(CurrentNodeInfo._NavNode, Neighbor);
 
-            // Check if it has already been touched
+            // Check if it has already been Touched
             int32 NeighborIndex = TouchedNodes.IndexOfByPredicate([&](const FNavNodeInfo& Info) { return Info._NavNode == Neighbor; });
 
             if (NeighborIndex != INDEX_NONE)
@@ -173,6 +191,18 @@ ANavNode* ACivilian::GetRandomNode() const
         return nullptr;
     }
 
-    int32 RandomIndex = FMath::RandRange(0, AllNodes.Num() - 1);
-    return Cast<ANavNode>(AllNodes[RandomIndex]);
+    while (true)
+    {
+        int32 RandomIndex = FMath::RandRange(0, AllNodes.Num() - 1);
+        ANavNode* NewTarget = Cast<ANavNode>(AllNodes[RandomIndex]);
+        if (NewTarget->StartTarget())
+        {
+            return NewTarget;
+        }
+    }
+}
+
+void ACivilian::SetIdle()
+{
+    IdleCurrentTime = FMath::FRandRange(IdleMinTime, IdleMaxTime);
 }

@@ -5,6 +5,10 @@
 #include "CoreMinimal.h"
 #include "Components/SceneComponent.h"
 #include "Components/SplineComponent.h"
+#include "Components/TextRenderComponent.h"
+#include "Components/TextRenderComponent.h"
+#include "Materials/MaterialInstanceDynamic.h"
+#include "UObject/ConstructorHelpers.h"
 #include "GameFramework/Actor.h"
 
 #include "NavNode.generated.h"
@@ -15,7 +19,6 @@ class PPP_API ANavNode : public AActor
 	GENERATED_BODY()
 
 public:
-	// Sets default values for this actor's properties
 	ANavNode();
 
 	void ConditionalBeginDestroy();
@@ -29,11 +32,9 @@ public:
 
 	TArray<ANavNode*> ConnectedNodesPast;
 
-	UPROPERTY(EditDefaultsOnly, BlueprintReadOnly, Category = "Node", meta = (ShowOnlyInnerProperties))
-		USplineComponent* SplineComponent;
+	USplineComponent* SplineComponent;
 
-	UPROPERTY(EditDefaultsOnly, Category = "Node")
-		UStaticMeshComponent* NodeMeshComponent;
+	UStaticMeshComponent* NodeMeshComponent;
 
 	UMaterialInstanceDynamic* NodeMaterial = nullptr;
 
@@ -62,5 +63,5 @@ public:
 	void EndTarget();
 
 private:
-	void SetColor();
+	void UpdateColor();
 };

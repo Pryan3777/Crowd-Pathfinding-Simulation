@@ -41,6 +41,9 @@ ANavNode::ANavNode()
         UE_LOG(LogTemp, Error, TEXT("Failed to find mesh asset."));
     }
 
+    UpdateColor();
+
+
     RootComponent->SetHiddenInGame(true);
 }
 
@@ -58,6 +61,8 @@ void ANavNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
     
      // Update spline component for visual connections when any property changes
      UpdateVisualConnections();
+
+     UpdateColor();
 }
 
 // Called when the game starts or when spawned
@@ -65,8 +70,7 @@ void ANavNode::BeginPlay()
 {
     AActor::BeginPlay();
 
-    NodeMaterial = NodeMeshComponent->CreateAndSetMaterialInstanceDynamic(0);
-    SetColor();
+    UpdateColor();
 }
 
 // Called every frame
@@ -80,7 +84,7 @@ void ANavNode::PostEditMove(bool bFinished)
 {
     AActor::PostEditMove(bFinished);
 
-    // Update spline component for visual connections
+    // Update spline component
     UpdateVisualConnections();
 }
 
@@ -134,7 +138,6 @@ void ANavNode::UpdateVisualConnections()
         ConnectedNodesPast = ConnectedNodes;
     }
     DrawConnections();
-    SplineComponent->UpdateSpline();
 }
 
 void ANavNode::AddConnection(ANavNode * target)
@@ -187,9 +190,9 @@ void ANavNode::DrawConnections(bool propogate)
                 FVector LocalStartLocation = SplineComponent->GetComponentTransform().InverseTransformPosition(StartLocation);
                 FVector LocalEndLocation = SplineComponent->GetComponentTransform().InverseTransformPosition(EndLocation);
 
-                FSplinePoint StartPoint(sPosition, LocalStartLocation, ESplinePointType::Constant);
+                FSplinePoint StartPoint(sPosition, LocalStartLocation, ESplinePointType::Linear);
                 sPosition += sIncrement;
-                FSplinePoint EndPoint(sPosition, LocalEndLocation, ESplinePointType::Constant);
+                FSplinePoint EndPoint(sPosition, LocalEndLocation, ESplinePointType::Linear);
                 sPosition += sIncrement;
 
                 SplineComponent->AddPoint(StartPoint, ESplineCoordinateSpace::World);
@@ -205,7 +208,7 @@ void ANavNode::DrawConnections(bool propogate)
         {
             FVector StartLocation = GetActorLocation();
             FVector LocalStartLocation = SplineComponent->GetComponentTransform().InverseTransformPosition(StartLocation);
-            FSplinePoint StartPoint(1.0f, LocalStartLocation, ESplinePointType::Constant);
+            FSplinePoint StartPoint(1.0f, LocalStartLocation, ESplinePointType::Linear);
             SplineComponent->AddPoint(StartPoint, ESplineCoordinateSpace::World);
         }
         SplineComponent->UpdateSpline();
@@ -222,7 +225,7 @@ bool ANavNode::StartTarget()
     if (TargetCount < TargetCapacity)
     {
         TargetCount++;
-        SetColor();
+        UpdateColor();
         return true;
     }
     return false;
@@ -231,28 +234,33 @@ bool ANavNode::StartTarget()
 void ANavNode::EndTarget()
 {
     TargetCount--;
-    SetColor();
+    UpdateColor();
 }
 
-void ANavNode::SetColor()
+void ANavNode::UpdateColor()
 {
+    if (!NodeMaterial)
+    {
+        NodeMaterial = NodeMeshComponent->CreateAndSetMaterialInstanceDynamic(0);
+    }
+
     if (TargetCapacity == 0)
     {
-        NodeMaterial->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor::Gray);
+        NodeMaterial->SetVectorParameterValue(TEXT("Color"), FLinearColor::White);
     }
     else
     {
         if (TargetCount == 0)
         {
-            NodeMaterial->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor::Green);
+            NodeMaterial->SetVectorParameterValue(TEXT("Color"), FLinearColor::Green);
         }
         else if (TargetCount == TargetCapacity)
         {
-            NodeMaterial->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor::Red);
+            NodeMaterial->SetVectorParameterValue(TEXT("Color"), FLinearColor::Red);
         }
         else
         {
-            NodeMaterial->SetVectorParameterValue(TEXT("BaseColor"), FLinearColor::Yellow);
+            NodeMaterial->SetVectorParameterValue(TEXT("Color"), FLinearColor::Yellow);
         }
     }
 }
