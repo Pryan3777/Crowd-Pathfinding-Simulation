@@ -71,6 +71,7 @@ void ANavNode::BeginPlay()
     AActor::BeginPlay();
 
     UpdateColor();
+    DrawCircleAroundActor();
 }
 
 // Called every frame
@@ -263,4 +264,29 @@ void ANavNode::UpdateColor()
             NodeMaterial->SetVectorParameterValue(TEXT("Color"), FLinearColor::Yellow);
         }
     }
+}
+
+void ANavNode::DrawCircleAroundActor()
+{
+    FVector ActorLocation = GetActorLocation();
+    FColor CircleColor = FColor::Green; // Set the desired color for the circle
+
+    // Draw the circle in the XY plane around the actor
+    const int32 NumSegments = 32; // Number of line segments to approximate the circle
+    const double AngleDelta = 2.0 * PI / static_cast<double>(NumSegments);
+    FVector PreviousPoint = FVector(ActorLocation.X + static_cast<float>(SmoothingRadius), ActorLocation.Y, ActorLocation.Z);
+
+    for (int32 SegmentIndex = 1; SegmentIndex <= NumSegments; ++SegmentIndex)
+    {
+        const double Angle = AngleDelta * static_cast<double>(SegmentIndex);
+        const FVector CurrentPoint = FVector(ActorLocation.X + static_cast<float>(SmoothingRadius * FMath::Cos(Angle)),
+            ActorLocation.Y + static_cast<float>(SmoothingRadius * FMath::Sin(Angle)),
+            ActorLocation.Z);
+
+        DrawDebugLine(GetWorld(), PreviousPoint, CurrentPoint, CircleColor, false, -1.f, SDPG_World, 2.f);
+        PreviousPoint = CurrentPoint;
+    }
+
+    // Connect the last and first points to complete the circle
+    DrawDebugLine(GetWorld(), PreviousPoint, FVector(ActorLocation.X + static_cast<float>(SmoothingRadius), ActorLocation.Y, ActorLocation.Z), CircleColor, false, -1.f, SDPG_World, 2.f);
 }

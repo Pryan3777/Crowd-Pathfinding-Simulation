@@ -30,6 +30,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
 		TArray<ANavNode*> ConnectedNodes;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
+		double SmoothingRadius = 100.0;
+
 	TArray<ANavNode*> ConnectedNodesPast;
 
 	USplineComponent* SplineComponent;
@@ -61,6 +64,8 @@ public:
 
 	bool StartTarget();
 	void EndTarget();
+
+	void DrawCircleAroundActor();
 
 private:
 	void UpdateColor();

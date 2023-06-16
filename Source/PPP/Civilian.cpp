@@ -31,13 +31,15 @@ void ACivilian::Tick(float DeltaTime)
     switch(state)
     {
     case CivilianStates::Pathing:
-        
+        Speed = MoveSpeed;
+
         // Move Towards Target
         Direction = (Path[0]->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+        SetActorRotation(Direction.Rotation());
         NewLocation = GetActorLocation() + (Direction * Speed * DeltaTime);
         SetActorLocation(NewLocation);
 
-        if (FVector::Distance(GetActorLocation(), Path[0]->GetActorLocation()) < distanceToContact)
+        if (FVector::Distance(GetActorLocation(), Path[0]->GetActorLocation()) <= Path[0]->SmoothingRadius)
         {
             if (Path.Num() == 1)
             {
@@ -46,13 +48,15 @@ void ACivilian::Tick(float DeltaTime)
             }
             else
             {
-                Path.RemoveAt(0);
+                state = CivilianStates::SmoothingPrep;
             }
         }
 
         break;
 
     case CivilianStates::Calculating:
+        Speed = 0.0f;
+
         StartNode = Path[0];
         if(TargetNode) TargetNode->EndTarget();
         TargetNode = GetRandomNode();
@@ -63,11 +67,39 @@ void ACivilian::Tick(float DeltaTime)
         break;
 
     case CivilianStates::Idle:
+        Speed = 0.0f;
+
         IdleCurrentTime -= DeltaTime;
         if (IdleCurrentTime < 0.0)
         {
             state = CivilianStates::Calculating;
         }
+        break;
+
+    case CivilianStates::SmoothingPrep:
+        Center = Path[0]->GetActorLocation();
+        RPoint1 = Center + (RecentCenter - Center).GetSafeNormal() * Path[0]->SmoothingRadius;
+        RPoint2 = Center + (Path[1]->GetActorLocation() - Center).GetSafeNormal() * Path[0]->SmoothingRadius;
+        SmoothingProgress = 0.0f;
+        SmoothingMultiplier = ((FVector::DotProduct((RPoint1 - Center).GetSafeNormal(), (RPoint2 - Center).GetSafeNormal()) * -1.0) + 1.0) / 2.0;
+
+        state = CivilianStates::Smoothing;
+        break;
+
+    case CivilianStates::Smoothing:
+        if (SmoothingProgress >= 1.0f)
+        {
+            RecentCenter = Path[0]->GetActorLocation();
+            Path.RemoveAt(0);
+            state = CivilianStates::Pathing;
+        }
+        SmoothingProgress += Speed * DeltaTime / (Path[0]->SmoothingRadius * SmoothingMultiplier * 2.0);
+
+        Direction = RLERP(Center - RPoint1, RPoint2 - Center, SmoothingProgress);
+        SetActorRotation(Direction.Rotation());
+        NewLocation = LERP(LERP(RPoint1, Center, SmoothingProgress), LERP(Center, RPoint2, SmoothingProgress), SmoothingProgress);
+        SetActorLocation(NewLocation);
+
         break;
     }
 }
@@ -113,6 +145,10 @@ void ACivilian::Calculate()
             {
                 Path.Insert(CurrentNodeInfoPointer->_NavNode, 0);
                 CurrentNodeInfoPointer = CurrentNodeInfoPointer->_ParentNode;
+            }
+            if (CurrentNodeInfoPointer)
+            {
+                RecentCenter = CurrentNodeInfoPointer->_NavNode->GetActorLocation();
             }
 
             // Clean up TouchedNodes
@@ -205,4 +241,32 @@ ANavNode* ACivilian::GetRandomNode() const
 void ACivilian::SetIdle()
 {
     IdleCurrentTime = FMath::FRandRange(IdleMinTime, IdleMaxTime);
+}
+
+FVector ACivilian::LERP(FVector A, FVector B, double progress)
+{
+    if (progress < 0.0f)
+    {
+        return A;
+    }
+    if (progress > 1.0f)
+    {
+        return B;
+    }
+    return (A * (1.0 - progress)) + (B * progress);
+}
+
+FVector ACivilian::RLERP(FVector A, FVector B, double progress)
+{
+    // Normalize the input vectors
+    FVector DirectionA = A.GetSafeNormal();
+    FVector DirectionB = B.GetSafeNormal();
+
+    // Interpolate between the directions
+    FVector InterpolatedDirection = DirectionA + progress * (DirectionB - DirectionA);
+
+    // Normalize the interpolated direction
+    InterpolatedDirection.Normalize();
+
+    return InterpolatedDirection;
 }

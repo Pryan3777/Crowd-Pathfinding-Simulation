@@ -9,6 +9,7 @@
 
 #include "NavNode.h"
 #include "NavNodeInfo.h"
+#include "DrawDebugHelpers.h"
 
 #include "Civilian.generated.h"
 
@@ -16,7 +17,9 @@ enum class CivilianStates : uint8
 {
 	Idle,
 	Pathing,
-	Calculating
+	Calculating,
+	Smoothing,
+	SmoothingPrep
 };
 
 UCLASS()
@@ -28,6 +31,9 @@ public:
 	// Sets default values for this character's properties
 	ACivilian();
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
+		float Speed;
+
 private:
 	TArray<FNavNodeInfo> TouchedNodes;
 	TArray<FNavNodeInfo> VisitedNodes;
@@ -38,15 +44,27 @@ private:
 	TArray<AActor*> AllNodes;
 
 	double distanceToContact = 100.0;
-	double Speed = 150.0;
+	double MoveSpeed = 150.0;
 	double IdleMaxTime = 5.0;
 	double IdleMinTime = 1.0;
 	double IdleCurrentTime = 10.0;
+	double SmoothingProgress = 0.0;
+	double SmoothingMultiplier = 1.0f;
+
+	FVector RPoint1;
+	FVector RPoint2;
+	FVector Center;
+
+	FVector RecentCenter;
+
+	bool FirstNode = true;
 
 	FVector Direction;
 	FVector NewLocation;
 
 	CivilianStates state = CivilianStates::Calculating;
+
+	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
 
 	void Calculate();
 
@@ -56,6 +74,9 @@ private:
 	ANavNode* GetRandomNode() const;
 
 	void SetIdle();
+
+	FVector LERP(FVector A, FVector B, double progress);
+	FVector RLERP(FVector A, FVector B, double progress);
 
 protected:
 	// Called when the game starts or when spawned
