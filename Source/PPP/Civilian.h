@@ -33,7 +33,6 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		float Speed;
-
 private:
 	TArray<FNavNodeInfo> TouchedNodes;
 	TArray<FNavNodeInfo> VisitedNodes;
@@ -64,8 +63,6 @@ private:
 
 	CivilianStates state = CivilianStates::Calculating;
 
-	UAnimInstance* AnimInstance = GetMesh()->GetAnimInstance();
-
 	void Calculate();
 
 	float CalculateHeuristic(ANavNode* Node);
@@ -77,6 +74,7 @@ private:
 
 	FVector LERP(FVector A, FVector B, double progress);
 	FVector RLERP(FVector A, FVector B, double progress);
+	double GetArcLength(const FVector& StartVector, const FVector& EndVector, double Radius);
 
 protected:
 	// Called when the game starts or when spawned

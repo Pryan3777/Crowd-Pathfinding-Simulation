@@ -4,7 +4,6 @@ ACivilian::ACivilian()
 {
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
-
 }
 
 // Called when the game starts or when spawned
@@ -81,7 +80,7 @@ void ACivilian::Tick(float DeltaTime)
         RPoint1 = Center + (RecentCenter - Center).GetSafeNormal() * Path[0]->SmoothingRadius;
         RPoint2 = Center + (Path[1]->GetActorLocation() - Center).GetSafeNormal() * Path[0]->SmoothingRadius;
         SmoothingProgress = 0.0f;
-        SmoothingMultiplier = ((FVector::DotProduct((RPoint1 - Center).GetSafeNormal(), (RPoint2 - Center).GetSafeNormal()) * -1.0) + 1.0) / 2.0;
+        SmoothingMultiplier = GetArcLength(RPoint1 - Center, RPoint2 - Center, Path[0]->SmoothingRadius);
 
         state = CivilianStates::Smoothing;
         break;
@@ -93,7 +92,7 @@ void ACivilian::Tick(float DeltaTime)
             Path.RemoveAt(0);
             state = CivilianStates::Pathing;
         }
-        SmoothingProgress += Speed * DeltaTime / (Path[0]->SmoothingRadius * SmoothingMultiplier * 2.0);
+        SmoothingProgress += Speed * DeltaTime / (SmoothingMultiplier);
 
         Direction = RLERP(Center - RPoint1, RPoint2 - Center, SmoothingProgress);
         SetActorRotation(Direction.Rotation());
@@ -269,4 +268,19 @@ FVector ACivilian::RLERP(FVector A, FVector B, double progress)
     InterpolatedDirection.Normalize();
 
     return InterpolatedDirection;
+}
+
+double ACivilian::GetArcLength(const FVector& StartVector, const FVector& EndVector, double Radius)
+{
+    // Calculate the angle between the start and end vectors
+    double Angle = FVector::DotProduct(StartVector.GetSafeNormal(), EndVector.GetSafeNormal());
+
+    Angle = FMath::Acos(Angle);
+
+    const double Pi = 3.14159265;
+
+    double top = Radius * (Pi - Angle) * FMath::Sin(Angle / 2.0);
+    double bottom = FMath::Sin((Pi - Angle) / 2.0);
+
+    return top/bottom;
 }

@@ -7,7 +7,8 @@
 // Sets default values
 ANavNode::ANavNode()
 {
-    PrimaryActorTick.bCanEverTick = false;
+    PrimaryActorTick.bCanEverTick = true;
+    PrimaryActorTick.bStartWithTickEnabled = true;
 
     RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
     RootComponent->SetMobility(EComponentMobility::Movable);
@@ -41,8 +42,11 @@ ANavNode::ANavNode()
         UE_LOG(LogTemp, Error, TEXT("Failed to find mesh asset."));
     }
 
+    UpdateVisualConnections();
+
     UpdateColor();
 
+    DrawCircleAroundActor();
 
     RootComponent->SetHiddenInGame(true);
 }
@@ -63,6 +67,8 @@ void ANavNode::PostEditChangeProperty(FPropertyChangedEvent& PropertyChangedEven
      UpdateVisualConnections();
 
      UpdateColor();
+
+     DrawCircleAroundActor();
 }
 
 // Called when the game starts or when spawned
@@ -79,6 +85,7 @@ void ANavNode::Tick(float DeltaTime)
 {
     AActor::Tick(DeltaTime);
 
+    DrawCircleAroundActor();
 }
 
 void ANavNode::PostEditMove(bool bFinished)
@@ -98,10 +105,7 @@ void ANavNode::UpdateVisualConnections()
 
     ConnectedNodes.StableSort();
 
-    if (nulls > 0)
-    {
-        ConnectedNodes.Add(nullptr);
-    }
+    ConnectedNodes.Add(nullptr);
 
     ANavNode* recent = nullptr;
     for (int i = 0; i < ConnectedNodes.Num(); i++)
@@ -268,25 +272,25 @@ void ANavNode::UpdateColor()
 
 void ANavNode::DrawCircleAroundActor()
 {
-    FVector ActorLocation = GetActorLocation();
-    FColor CircleColor = FColor::Green; // Set the desired color for the circle
-
-    // Draw the circle in the XY plane around the actor
-    const int32 NumSegments = 32; // Number of line segments to approximate the circle
-    const double AngleDelta = 2.0 * PI / static_cast<double>(NumSegments);
-    FVector PreviousPoint = FVector(ActorLocation.X + static_cast<float>(SmoothingRadius), ActorLocation.Y, ActorLocation.Z);
-
-    for (int32 SegmentIndex = 1; SegmentIndex <= NumSegments; ++SegmentIndex)
+    if (GetWorld())
     {
-        const double Angle = AngleDelta * static_cast<double>(SegmentIndex);
-        const FVector CurrentPoint = FVector(ActorLocation.X + static_cast<float>(SmoothingRadius * FMath::Cos(Angle)),
-            ActorLocation.Y + static_cast<float>(SmoothingRadius * FMath::Sin(Angle)),
-            ActorLocation.Z);
+        const int32 NumPoints = 32;
+        const float AngleIncrement = 2.0f * PI / static_cast<float>(NumPoints);
 
-        DrawDebugLine(GetWorld(), PreviousPoint, CurrentPoint, CircleColor, false, -1.f, SDPG_World, 2.f);
-        PreviousPoint = CurrentPoint;
+        TArray<FVector> CirclePoints;
+        CirclePoints.Reserve(NumPoints);
+
+        for (int32 i = 0; i < NumPoints; ++i)
+        {
+            const float Angle = i * AngleIncrement;
+            const FVector Point = GetActorLocation() + FVector(0.0f, 0.0f, 50.0f) + FVector(FMath::Cos(Angle), FMath::Sin(Angle), 0.0f) * SmoothingRadius;
+            CirclePoints.Add(Point);
+        }
+
+        for (int32 i = 0; i < NumPoints - 1; ++i)
+        {
+            DrawDebugLine(GetWorld(), CirclePoints[i], CirclePoints[i + 1], FColor::Green, false, -1.0f, 0, 1.0f);
+        }
+        DrawDebugLine(GetWorld(), CirclePoints[NumPoints - 1], CirclePoints[0], FColor::Green, false, -1.0f, 0, 1.0f);
     }
-
-    // Connect the last and first points to complete the circle
-    DrawDebugLine(GetWorld(), PreviousPoint, FVector(ActorLocation.X + static_cast<float>(SmoothingRadius), ActorLocation.Y, ActorLocation.Z), CircleColor, false, -1.f, SDPG_World, 2.f);
 }
