@@ -43,7 +43,7 @@ private:
 	TArray<AActor*> AllNodes;
 
 	double distanceToContact = 100.0;
-	double MoveSpeed = 150.0;
+	double MoveSpeed = 200.0;
 	double IdleMaxTime = 5.0;
 	double IdleMinTime = 1.0;
 	double IdleCurrentTime = 10.0;

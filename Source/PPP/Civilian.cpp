@@ -19,6 +19,8 @@ void ACivilian::BeginPlay()
     StartNode->EndTarget();
     SetActorLocation(StartNode->GetActorLocation());
 	Path.Add(StartNode);
+
+    Speed = MoveSpeed;
 }
 
 // Called every frame
