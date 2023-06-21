@@ -28,6 +28,8 @@ void ACivilian::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
+    double ratio;
+
     // Act based on current State
     switch(state)
     {
@@ -35,9 +37,49 @@ void ACivilian::Tick(float DeltaTime)
         Speed = MoveSpeed;
 
         // Move Towards Target
-        Direction = (Path[0]->GetActorLocation() - GetActorLocation()).GetSafeNormal();
-        SetActorRotation(Direction.Rotation());
-        NewLocation = GetActorLocation() + (Direction * Speed * DeltaTime);
+        DesiredDirectionVector = (Path[0]->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+        DesiredDirection = atan2(DesiredDirectionVector.Y, DesiredDirectionVector.X);
+        DesiredDirection = fmod((DesiredDirection), 2 * PI);
+        if (DesiredDirection < -PI)
+        {
+            DesiredDirection += 2.0 * PI;
+        }
+        else if (DesiredDirection > PI)
+        {
+            DesiredDirection -= 2.0 * PI;
+        }
+        DeltaDirection = fmod((DesiredDirection - Direction), 2 * PI);
+        if (DeltaDirection < -PI)
+        {
+            DeltaDirection += 2.0 * PI;
+        }
+        else if(DeltaDirection > PI)
+        {
+            DeltaDirection -= 2.0 * PI;
+        }
+        theta = RotationSpeed * DeltaTime;
+
+        if (FMath::Abs(DeltaDirection) < theta)
+        {
+            Direction = DesiredDirection;
+            ratio;
+        }
+        else if (FMath::Abs(DeltaDirection) > PI / 2)
+        {
+            ratio = FMath::Abs(DeltaDirection) / (PI / 2);
+            //Speed = Speed * (2.0 - ratio);
+            Direction += theta * ratio * FMath::Sign(DeltaDirection);
+        }
+        
+        else
+        {
+            Direction += theta * FMath::Sign(DeltaDirection);
+        }
+        
+        DirectionVector = FVector(cos(Direction), sin(Direction), 0.0);
+        SetActorRotation(DirectionVector.Rotation());
+        NewLocation = GetActorLocation() + (DirectionVector * Speed * DeltaTime);
+        NewLocation.Z = 0.0;
         SetActorLocation(NewLocation);
 
         if (FVector::Distance(GetActorLocation(), Path[0]->GetActorLocation()) <= Path[0]->SmoothingRadius)
@@ -49,7 +91,10 @@ void ACivilian::Tick(float DeltaTime)
             }
             else
             {
-                state = CivilianStates::SmoothingPrep;
+                //state = CivilianStates::SmoothingPrep;
+
+                Path.RemoveAt(0);
+                state = CivilianStates::Pathing;
             }
         }
 
@@ -77,7 +122,7 @@ void ACivilian::Tick(float DeltaTime)
         }
         break;
 
-    case CivilianStates::SmoothingPrep:
+    /*case CivilianStates::SmoothingPrep:
         Center = Path[0]->GetActorLocation();
         RPoint1 = Center + (RecentCenter - Center).GetSafeNormal() * Path[0]->SmoothingRadius;
         RPoint2 = Center + (Path[1]->GetActorLocation() - Center).GetSafeNormal() * Path[0]->SmoothingRadius;
@@ -85,9 +130,9 @@ void ACivilian::Tick(float DeltaTime)
         SmoothingMultiplier = GetArcLength(RPoint1 - Center, RPoint2 - Center, Path[0]->SmoothingRadius);
 
         state = CivilianStates::Smoothing;
-        break;
+        break;*/
 
-    case CivilianStates::Smoothing:
+    /*case CivilianStates::Smoothing:
         if (SmoothingProgress >= 1.0f)
         {
             RecentCenter = Path[0]->GetActorLocation();
@@ -101,7 +146,7 @@ void ACivilian::Tick(float DeltaTime)
         NewLocation = LERP(LERP(RPoint1, Center, SmoothingProgress), LERP(Center, RPoint2, SmoothingProgress), SmoothingProgress);
         SetActorLocation(NewLocation);
 
-        break;
+        break;*/
     }
 }
 

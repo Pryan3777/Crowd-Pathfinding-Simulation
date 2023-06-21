@@ -49,6 +49,7 @@ private:
 	double IdleCurrentTime = 10.0;
 	double SmoothingProgress = 0.0;
 	double SmoothingMultiplier = 1.0f;
+	double RotationSpeed = 0.1;
 
 	FVector RPoint1;
 	FVector RPoint2;
@@ -58,8 +59,15 @@ private:
 
 	bool FirstNode = true;
 
-	FVector Direction;
+	double Direction = 0.0f;
+	FVector DirectionVector;
 	FVector NewLocation;
+
+	FVector DesiredDirectionVector;
+	double DesiredDirection;
+	double DeltaDirection;
+	double theta;
+
 
 	CivilianStates state = CivilianStates::Calculating;
 
