@@ -49,7 +49,7 @@ private:
 	double IdleCurrentTime = 10.0;
 	double SmoothingProgress = 0.0;
 	double SmoothingMultiplier = 1.0f;
-	double RotationSpeed = 0.1;
+	double RotationSpeed = 1.0;
 
 	FVector RPoint1;
 	FVector RPoint2;

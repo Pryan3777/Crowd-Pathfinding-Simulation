@@ -37,7 +37,9 @@ void ACivilian::Tick(float DeltaTime)
         Speed = MoveSpeed;
 
         // Move Towards Target
-        DesiredDirectionVector = (Path[0]->GetActorLocation() - GetActorLocation()).GetSafeNormal();
+        DesiredDirectionVector = (Path[0]->GetActorLocation() - GetActorLocation());
+        DesiredDirectionVector.Z = 0.0f;
+        DesiredDirectionVector = DesiredDirectionVector.GetSafeNormal();
         DesiredDirection = atan2(DesiredDirectionVector.Y, DesiredDirectionVector.X);
         DesiredDirection = fmod((DesiredDirection), 2 * PI);
         if (DesiredDirection < -PI)
@@ -67,16 +69,15 @@ void ACivilian::Tick(float DeltaTime)
         else if (FMath::Abs(DeltaDirection) > PI / 2)
         {
             ratio = FMath::Abs(DeltaDirection) / (PI / 2);
-            //Speed = Speed * (2.0 - ratio);
+            Speed = Speed * (2.0 - ratio);
             Direction += theta * ratio * FMath::Sign(DeltaDirection);
         }
-        
         else
         {
             Direction += theta * FMath::Sign(DeltaDirection);
         }
         
-        DirectionVector = FVector(cos(Direction), sin(Direction), 0.0);
+        DirectionVector = FVector(cos(Direction), sin(Direction), 0.0).GetSafeNormal();
         SetActorRotation(DirectionVector.Rotation());
         NewLocation = GetActorLocation() + (DirectionVector * Speed * DeltaTime);
         NewLocation.Z = 0.0;
