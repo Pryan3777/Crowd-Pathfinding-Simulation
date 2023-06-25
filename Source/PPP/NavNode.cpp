@@ -189,8 +189,8 @@ void ANavNode::DrawConnections(bool propogate)
         {
             if (ConnectedNode)
             {
-                FVector StartLocation = GetActorLocation();
-                FVector EndLocation = ConnectedNode->GetActorLocation();
+                FVector StartLocation = GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
+                FVector EndLocation = ConnectedNode->GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
 
                 FVector LocalStartLocation = SplineComponent->GetComponentTransform().InverseTransformPosition(StartLocation);
                 FVector LocalEndLocation = SplineComponent->GetComponentTransform().InverseTransformPosition(EndLocation);
@@ -211,7 +211,7 @@ void ANavNode::DrawConnections(bool propogate)
         }
 
         {
-            FVector StartLocation = GetActorLocation();
+            FVector StartLocation = GetActorLocation() + FVector(0.0f, 0.0f, 100.0f);
             FVector LocalStartLocation = SplineComponent->GetComponentTransform().InverseTransformPosition(StartLocation);
             FSplinePoint StartPoint(1.0f, LocalStartLocation, ESplinePointType::Linear);
             SplineComponent->AddPoint(StartPoint, ESplineCoordinateSpace::World);

@@ -10,6 +10,14 @@
 #include "NavNode.h"
 #include "NavNodeInfo.h"
 #include "DrawDebugHelpers.h"
+#include "Components/SceneComponent.h"
+#include "Components/SplineComponent.h"
+#include "Components/SkeletalMeshComponent.h"
+#include "GameFramework/CharacterMovementComponent.h"
+#include "Components/CapsuleComponent.h"
+#include "Components/SceneComponent.h"
+#include "Animation/AnimInstance.h"
+#include "Animation/AnimBlueprint.h"
 
 #include "Civilian.generated.h"
 
@@ -33,7 +41,18 @@ public:
 
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Animation")
 		float Speed;
+	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline")
+		USplineComponent* SplineComponent;
+
 private:
+	USkeletalMesh* SkeletalMesh;
+	USkeletalMeshComponent* SkeletalMeshComponent;
+	UAnimBlueprint* AnimationBlueprint;
+	UClass* AnimationClass;
+	UCapsuleComponent* CapsuleComponent;
+	UCharacterMovementComponent* MovementComponent;
+	USceneComponent* SceneComponent;
+
 	TArray<FNavNodeInfo> TouchedNodes;
 	TArray<FNavNodeInfo> VisitedNodes;
 	TArray<ANavNode*> Path;
@@ -49,7 +68,10 @@ private:
 	double IdleCurrentTime = 10.0;
 	double SmoothingProgress = 0.0;
 	double SmoothingMultiplier = 1.0f;
-	double RotationSpeed = 1.0;
+	double RotationSpeed = 4.0;
+	double ToSplinePriority = 0.2f;
+	double HeightOffGround = 110.0f;
+	double MeshOffset = -90.0f;
 
 	FVector RPoint1;
 	FVector RPoint2;
@@ -62,6 +84,10 @@ private:
 	double Direction = 0.0f;
 	FVector DirectionVector;
 	FVector NewLocation;
+	float DistanceAlongSpline;
+	FVector SplinePoint;
+	FVector SplineTangent;
+	FVector ToSpline;
 
 	FVector DesiredDirectionVector;
 	double DesiredDirection;
@@ -84,6 +110,8 @@ private:
 	FVector RLERP(FVector A, FVector B, double progress);
 	double GetArcLength(const FVector& StartVector, const FVector& EndVector, double Radius);
 
+	void DrawPath();
+	void DrawDebugSpline();
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;

@@ -2,8 +2,35 @@
 
 ACivilian::ACivilian()
 {
+
  	// Set this character to call Tick() every frame.  You can turn this off to improve performance if you don't need it.
 	PrimaryActorTick.bCanEverTick = true;
+
+    //RootComponent = CreateDefaultSubobject<USceneComponent>(TEXT("RootComponent"));
+    SkeletalMeshComponent = FindComponentByClass<USkeletalMeshComponent>();
+    SplineComponent = CreateDefaultSubobject<USplineComponent>(TEXT("SplineComponent"));
+    CapsuleComponent = FindComponentByClass<UCapsuleComponent>();
+    SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
+
+    //CapsuleComponent->SetupAttachment(RootComponent);
+    RootComponent = CapsuleComponent;
+    SceneComponent->SetupAttachment(RootComponent);
+    SkeletalMeshComponent->SetupAttachment(CapsuleComponent);
+    SplineComponent->SetupAttachment(SceneComponent);
+
+    SplineComponent->SetMobility(EComponentMobility::Static);
+    
+    RootComponent->SetMobility(EComponentMobility::Movable);
+
+    SkeletalMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny"));
+    SkeletalMeshComponent->SetSkeletalMeshAsset(SkeletalMesh);
+
+    AnimationBlueprint = LoadObject<UAnimBlueprint>(nullptr, TEXT("/Game/Animations/AI/AP_EnemyAI"), nullptr, LOAD_None, nullptr);
+    AnimationClass = AnimationBlueprint->GeneratedClass;
+    SkeletalMeshComponent->SetAnimInstanceClass(AnimationClass);
+
+    SkeletalMeshComponent->SetRelativeRotation(FRotator(0.0f, -90.0f, 0.0f));
+    SkeletalMeshComponent->SetRelativeLocation(FVector(0.0f, 0.0f, MeshOffset));
 }
 
 // Called when the game starts or when spawned
@@ -28,8 +55,6 @@ void ACivilian::Tick(float DeltaTime)
 {
     Super::Tick(DeltaTime);
 
-    double ratio;
-
     // Act based on current State
     switch(state)
     {
@@ -40,7 +65,7 @@ void ACivilian::Tick(float DeltaTime)
         DesiredDirectionVector = (Path[0]->GetActorLocation() - GetActorLocation());
         DesiredDirectionVector.Z = 0.0f;
         DesiredDirectionVector = DesiredDirectionVector.GetSafeNormal();
-        DesiredDirection = atan2(DesiredDirectionVector.Y, DesiredDirectionVector.X);
+       /* DesiredDirection = atan2(DesiredDirectionVector.Y, DesiredDirectionVector.X);
         DesiredDirection = fmod((DesiredDirection), 2 * PI);
         if (DesiredDirection < -PI)
         {
@@ -75,12 +100,28 @@ void ACivilian::Tick(float DeltaTime)
         else
         {
             Direction += theta * FMath::Sign(DeltaDirection);
-        }
-        
-        DirectionVector = FVector(cos(Direction), sin(Direction), 0.0).GetSafeNormal();
+        }*/
+        //FVector Dot = DotProduct(DesiredDirectionVector, DesiredDirectionVector);
+        Center = GetActorLocation();
+        Center.Z = 0.0f;
+        SetActorLocation(Center);
+
+        DistanceAlongSpline = SplineComponent->FindInputKeyClosestToWorldLocation(GetActorLocation());
+        SplinePoint = SplineComponent->GetLocationAtSplineInputKey(DistanceAlongSpline, ESplineCoordinateSpace::World);
+        SplineTangent = SplineComponent->GetDirectionAtSplineInputKey(DistanceAlongSpline, ESplineCoordinateSpace::World);
+        ToSpline = (SplinePoint - (GetActorLocation()));
+        ToSpline.Z = 0.0f;
+
+        DrawDebugSphere(GetWorld(), SplinePoint + FVector(0.0f, 0.0f, 250.0f), 25.0f, 16, FColor::Cyan, false, -1.f, 0, 0.f);
+
+        DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f) + (SplineTangent * 100.0f), FColor::Red, false, -1.0f, 0, 3.0f);
+        DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f) + (ToSpline * 100.0f), FColor::Blue, false, -1.0f, 0, 3.0f);
+        DrawDebugSpline();
+
+        DirectionVector = (DirectionVector + SplineTangent + (ToSpline * ToSplinePriority)).GetSafeNormal();
         SetActorRotation(DirectionVector.Rotation());
         NewLocation = GetActorLocation() + (DirectionVector * Speed * DeltaTime);
-        NewLocation.Z = 0.0;
+        NewLocation.Z = HeightOffGround;
         SetActorLocation(NewLocation);
 
         if (FVector::Distance(GetActorLocation(), Path[0]->GetActorLocation()) <= Path[0]->SmoothingRadius)
@@ -109,6 +150,8 @@ void ACivilian::Tick(float DeltaTime)
         TargetNode = GetRandomNode();
 
         Calculate();
+
+        DrawPath();
 
         state = CivilianStates::Pathing;
         break;
@@ -188,7 +231,7 @@ void ACivilian::Calculate()
             Path.Empty();
             Path.Add(TargetNode);
             FNavNodeInfo* CurrentNodeInfoPointer = CurrentNodeInfo._ParentNode;
-            while (CurrentNodeInfoPointer && CurrentNodeInfoPointer->_ParentNode)
+            while (CurrentNodeInfoPointer)
             {
                 Path.Insert(CurrentNodeInfoPointer->_NavNode, 0);
                 CurrentNodeInfoPointer = CurrentNodeInfoPointer->_ParentNode;
@@ -331,4 +374,41 @@ double ACivilian::GetArcLength(const FVector& StartVector, const FVector& EndVec
     double bottom = FMath::Sin((Pi - Angle) / 2.0);
 
     return top/bottom;
+}
+
+void ACivilian::DrawPath()
+{
+    float sPosition = 0.0f;
+    int nonNullNodeCount = Path.Num();
+    float sIncrement = 1.0f / (float)(nonNullNodeCount);
+    if (SplineComponent)
+    {
+        SplineComponent->ClearSplinePoints();
+
+        for (ANavNode* ConnectedNode : Path)
+        {
+            if (ConnectedNode)
+            {
+                FVector StartLocation = ConnectedNode->GetActorLocation() + FVector(0.0f, 0.0f, 0.0f);
+
+                FVector LocalStartLocation = SplineComponent->GetComponentTransform().InverseTransformPosition(StartLocation);
+
+                FSplinePoint StartPoint(sPosition, LocalStartLocation, ESplinePointType::Curve);
+                sPosition += sIncrement;
+
+                SplineComponent->AddPoint(StartPoint, ESplineCoordinateSpace::World);
+            }
+        }
+
+        SplineComponent->UpdateSpline();
+    }
+}
+
+void ACivilian::DrawDebugSpline()
+{
+    int points = 100;
+    for (int i = 0; i < points; i++)
+    {
+        DrawDebugLine(GetWorld(), SplineComponent->GetLocationAtSplineInputKey(((float)i) / (points + 1), ESplineCoordinateSpace::World) + FVector(0.0f, 0.0f, 250.0f), SplineComponent->GetLocationAtSplineInputKey(((float)(i + 1)) / (points + 1), ESplineCoordinateSpace::World) + FVector(0.0f, 0.0f, 250.0f), FColor::Green, false, -1.0f, 0, 3.0f);
+    }
 }
