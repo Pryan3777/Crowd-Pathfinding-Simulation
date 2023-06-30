@@ -1,4 +1,5 @@
 #include "Civilian.h"
+#include "PPPGameInstance.h"
 
 ACivilian::ACivilian()
 {
@@ -11,6 +12,7 @@ ACivilian::ACivilian()
     SplineComponent = CreateDefaultSubobject<USplineComponent>(TEXT("SplineComponent"));
     CapsuleComponent = FindComponentByClass<UCapsuleComponent>();
     SceneComponent = CreateDefaultSubobject<USceneComponent>(TEXT("SceneComponent"));
+    AvoidComponent = CreateDefaultSubobject<UAvoid>(TEXT("AvoidComponent"));
 
     //CapsuleComponent->SetupAttachment(RootComponent);
     RootComponent = CapsuleComponent;
@@ -48,6 +50,16 @@ void ACivilian::BeginPlay()
 	Path.Add(StartNode);
 
     Speed = MoveSpeed;
+
+    UGameInstance* GameInstance = GetWorld()->GetGameInstance();
+    if (GameInstance)
+    {
+        UPPPGameInstance* PPPGameInstance = Cast<UPPPGameInstance>(GameInstance);
+        if (PPPGameInstance)
+        {
+            PPPGameInstance->AddCivilianReference(this);
+        }
+    }
 }
 
 // Called every frame
@@ -411,4 +423,9 @@ void ACivilian::DrawDebugSpline()
     {
         DrawDebugLine(GetWorld(), SplineComponent->GetLocationAtSplineInputKey(((float)i) / (points + 1), ESplineCoordinateSpace::World) + FVector(0.0f, 0.0f, 250.0f), SplineComponent->GetLocationAtSplineInputKey(((float)(i + 1)) / (points + 1), ESplineCoordinateSpace::World) + FVector(0.0f, 0.0f, 250.0f), FColor::Green, false, -1.0f, 0, 3.0f);
     }
+}
+
+void ACivilian::SetAvoid(TArray<AActor*> avoid)
+{
+    Avoid = avoid;
 }

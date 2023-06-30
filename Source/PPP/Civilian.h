@@ -18,6 +18,7 @@
 #include "Components/SceneComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimBlueprint.h"
+#include "Avoid.h"
 
 #include "Civilian.generated.h"
 
@@ -52,6 +53,7 @@ private:
 	UCapsuleComponent* CapsuleComponent;
 	UCharacterMovementComponent* MovementComponent;
 	USceneComponent* SceneComponent;
+	UAvoid* AvoidComponent;
 
 	TArray<FNavNodeInfo> TouchedNodes;
 	TArray<FNavNodeInfo> VisitedNodes;
@@ -94,6 +96,7 @@ private:
 	double DeltaDirection;
 	double theta;
 
+	TArray<AActor*> Avoid;
 
 	CivilianStates state = CivilianStates::Calculating;
 
@@ -112,6 +115,7 @@ private:
 
 	void DrawPath();
 	void DrawDebugSpline();
+
 protected:
 	// Called when the game starts or when spawned
 	virtual void BeginPlay() override;
@@ -120,6 +124,7 @@ public:
 	// Called every frame
 	virtual void Tick(float DeltaTime) override;
 
+	void SetAvoid(TArray<AActor*> avoid);
 };
 
 struct CompareNavNodeInfo
