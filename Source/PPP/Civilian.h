@@ -18,6 +18,7 @@
 #include "Components/SceneComponent.h"
 #include "Animation/AnimInstance.h"
 #include "Animation/AnimBlueprint.h"
+#include "PPPGameInstance.h"
 #include "Avoid.h"
 
 #include "Civilian.generated.h"
@@ -71,7 +72,6 @@ private:
 	double SmoothingProgress = 0.0;
 	double SmoothingMultiplier = 1.0f;
 	double RotationSpeed = 4.0;
-	double ToSplinePriority = 0.2f;
 	double HeightOffGround = 110.0f;
 	double MeshOffset = -90.0f;
 
@@ -96,6 +96,14 @@ private:
 	double DeltaDirection;
 	double theta;
 
+	FVector AvoidVector;
+	double MaxAvoidRange = 1000.0;
+
+	double AvoidScaleFactor = 3.0;
+	double ToSplinePriority = 0.01;
+	double SplineTangentFactor = 1.0;
+	double PreviousVectorFactor = 10.0;
+
 	TArray<AActor*> Avoid;
 
 	CivilianStates state = CivilianStates::Calculating;
@@ -115,6 +123,8 @@ private:
 
 	void DrawPath();
 	void DrawDebugSpline();
+
+	void CalculateAvoid();
 
 protected:
 	// Called when the game starts or when spawned

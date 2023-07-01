@@ -5,7 +5,6 @@
 #include "CoreMinimal.h"
 #include "Engine/GameInstance.h"
 #include "Avoid.h"
-#include "Civilian.h"
 #include "PPPGameInstance.generated.h"
 
 /**

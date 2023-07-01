@@ -1,7 +1,8 @@
 // Fill out your copyright notice in the Description page of Project Settings.
 
-
 #include "PPPGameInstance.h"
+#include "Civilian.h"
+
 
 void UPPPGameInstance::AddAvoidReference(AActor* ActorToAdd)
 {
@@ -18,6 +19,7 @@ void UPPPGameInstance::RemoveAvoidReference(AActor* ActorToRemove)
 void UPPPGameInstance::AddCivilianReference(ACivilian* CivilianToAdd)
 {
 	CivilianReferences.Add(CivilianToAdd);
+	CivilianToAdd->SetAvoid(AvoidReferences);
 }
 
 void UPPPGameInstance::RemoveCivilianReference(ACivilian* CivilianToRemove)

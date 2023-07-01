@@ -23,6 +23,7 @@ ACivilian::ACivilian()
     SplineComponent->SetMobility(EComponentMobility::Static);
     
     RootComponent->SetMobility(EComponentMobility::Movable);
+    
 
     SkeletalMesh = LoadObject<USkeletalMesh>(nullptr, TEXT("/Game/Characters/Mannequins/Meshes/SKM_Manny"));
     SkeletalMeshComponent->SetSkeletalMeshAsset(SkeletalMesh);
@@ -130,11 +131,18 @@ void ACivilian::Tick(float DeltaTime)
         DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f) + (ToSpline * 100.0f), FColor::Blue, false, -1.0f, 0, 3.0f);
         DrawDebugSpline();
 
-        DirectionVector = (DirectionVector + SplineTangent + (ToSpline * ToSplinePriority)).GetSafeNormal();
+        CalculateAvoid();
+
+        DirectionVector = ((DirectionVector * PreviousVectorFactor) + (SplineTangent * SplineTangentFactor) + (ToSpline * ToSplinePriority) + AvoidVector).GetSafeNormal();
         SetActorRotation(DirectionVector.Rotation());
         NewLocation = GetActorLocation() + (DirectionVector * Speed * DeltaTime);
         NewLocation.Z = HeightOffGround;
         SetActorLocation(NewLocation);
+
+        while (Path.Num() > 1)
+        {
+            Path.RemoveAt(0);
+        }
 
         if (FVector::Distance(GetActorLocation(), Path[0]->GetActorLocation()) <= Path[0]->SmoothingRadius)
         {
@@ -143,13 +151,13 @@ void ACivilian::Tick(float DeltaTime)
                 SetIdle();
                 state = CivilianStates::Idle;
             }
-            else
-            {
-                //state = CivilianStates::SmoothingPrep;
+            //else
+            //{
+            //    //state = CivilianStates::SmoothingPrep;
 
-                Path.RemoveAt(0);
-                state = CivilianStates::Pathing;
-            }
+            //    Path.RemoveAt(0);
+            //    state = CivilianStates::Pathing;
+            //}
         }
 
         break;
@@ -428,4 +436,40 @@ void ACivilian::DrawDebugSpline()
 void ACivilian::SetAvoid(TArray<AActor*> avoid)
 {
     Avoid = avoid;
+}
+
+void ACivilian::CalculateAvoid()
+{
+    AvoidVector = FVector(0.0f, 0.0f, 0.0f);
+
+    FVector myLocation = GetActorLocation();
+    FVector otherLocation;
+    FVector otherToMy;
+    double distance;
+    int avoidCount = 0;
+
+    for (auto avoid : Avoid)
+    {
+        otherLocation = avoid->GetActorLocation();
+        otherToMy = myLocation - otherLocation;
+        distance = (otherToMy).Length();
+        otherToMy.Normalize();
+        if (avoid != this && GetActorForwardVector().Dot(-otherToMy) > 0.0)
+        {
+            if (distance < MaxAvoidRange)
+            {
+                avoidCount++;
+                DrawDebugLine(GetWorld(), myLocation + FVector(0.0f, 0.0f, 250.0f), otherLocation + FVector(0.0f, 0.0f, 250.0f), FColor::Purple, false, -1.0f, 0, 10.0f);
+                
+                AvoidVector += (GetActorForwardVector().Dot(-avoid->GetActorForwardVector()) + 2.0) * GetActorForwardVector().Dot(-otherToMy) * otherToMy * ((MaxAvoidRange - distance) / MaxAvoidRange) * ((MaxAvoidRange - distance) / MaxAvoidRange);
+            }
+        }
+    }
+    AvoidVector.Z = 0.0f;
+    if (avoidCount > 0)
+    {
+        AvoidVector /= avoidCount;
+    }
+    AvoidVector *= AvoidScaleFactor;
+    
 }
