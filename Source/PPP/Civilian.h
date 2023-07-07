@@ -99,6 +99,8 @@ private:
 	FVector AvoidVector;
 	double MaxAvoidRange = 1000.0;
 
+	FVector PredictiveAvoidVector;
+
 	double AvoidScaleFactor = 3.0;
 	double ToSplinePriority = 0.01;
 	double SplineTangentFactor = 1.0;
@@ -125,6 +127,7 @@ private:
 	void DrawDebugSpline();
 
 	void CalculateAvoid();
+	void CalculatePredictiveAvoid();
 
 protected:
 	// Called when the game starts or when spawned

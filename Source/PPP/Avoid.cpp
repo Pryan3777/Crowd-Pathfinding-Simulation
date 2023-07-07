@@ -11,6 +11,7 @@ UAvoid::UAvoid()
 	// off to improve performance if you don't need them.
 	PrimaryComponentTick.bCanEverTick = true;
 
+	Velocity = FVector(0.0, 0.0, 0.0);
 	// ...
 }
 
@@ -38,5 +39,15 @@ void UAvoid::TickComponent(float DeltaTime, ELevelTick TickType, FActorComponent
 	Super::TickComponent(DeltaTime, TickType, ThisTickFunction);
 
 	// ...
+}
+
+FVector UAvoid::GetVelocity()
+{
+	return Velocity;
+}
+
+void UAvoid::SetVelocity(FVector vector)
+{
+	Velocity = FVector(vector.X, vector.Y, 0.0);
 }
 

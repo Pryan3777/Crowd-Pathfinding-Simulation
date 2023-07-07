@@ -131,11 +131,14 @@ void ACivilian::Tick(float DeltaTime)
         DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f) + (ToSpline * 100.0f), FColor::Blue, false, -1.0f, 0, 3.0f);
         DrawDebugSpline();
 
-        CalculateAvoid();
+        //CalculateAvoid();
+        CalculatePredictiveAvoid();
 
-        DirectionVector = ((DirectionVector * PreviousVectorFactor) + (SplineTangent * SplineTangentFactor) + (ToSpline * ToSplinePriority) + AvoidVector).GetSafeNormal();
+        //DirectionVector = ((DirectionVector * PreviousVectorFactor) + (SplineTangent * SplineTangentFactor) + (ToSpline * ToSplinePriority) + AvoidVector).GetSafeNormal();
+        DirectionVector = ((DirectionVector * PreviousVectorFactor) + (SplineTangent * SplineTangentFactor) + (ToSpline * ToSplinePriority) + PredictiveAvoidVector).GetSafeNormal();
         SetActorRotation(DirectionVector.Rotation());
         NewLocation = GetActorLocation() + (DirectionVector * Speed * DeltaTime);
+        GetComponentByClass<UAvoid>()->SetVelocity(DirectionVector * Speed);
         NewLocation.Z = HeightOffGround;
         SetActorLocation(NewLocation);
 
@@ -472,4 +475,38 @@ void ACivilian::CalculateAvoid()
     }
     AvoidVector *= AvoidScaleFactor;
     
+}
+
+void ACivilian::CalculatePredictiveAvoid()
+{
+    PredictiveAvoidVector = FVector(0.0f, 0.0f, 0.0f);
+
+    FVector SelfPosition = GetActorLocation();
+    FVector SelfVelocity = GetComponentByClass<UAvoid>()->GetVelocity();
+    for (auto avoid : Avoid)
+    {
+        if (avoid != this)
+        {
+            FVector OtherPosition = avoid->GetActorLocation();
+            FVector OtherVelocity = avoid->GetComponentByClass<UAvoid>()->GetVelocity();
+            double Uax = SelfPosition.X;
+            double Ubx = OtherPosition.X;
+            double Uay = SelfPosition.Y;
+            double Uby = OtherPosition.Y;
+            double Vax = SelfVelocity.X;
+            double Vbx = OtherVelocity.X;
+            double Vay = SelfVelocity.Y;
+            double Vby = OtherVelocity.Y;
+            double t = -(((Uax - Ubx) * (Vax - Vbx)) + ((Uay - Uby) * (Vay - Vby))) / (((Vax - Vbx) * (Vax - Vbx)) + ((Vay - Vby) * (Vay - Vby)));
+            if (t < 0)
+            {
+                break;
+            }
+            DrawDebugLine(GetWorld(), SelfPosition + FVector(0,0,25.0), SelfPosition + (SelfVelocity * t) + FVector(0, 0, 25.0), FColor::Orange, false, -1.0f, 0, 3.0f);
+            DrawDebugLine(GetWorld(), OtherPosition + FVector(0, 0, 25.0), OtherPosition + (OtherVelocity * t) + FVector(0, 0, 25.0), FColor::Orange, false, -1.0f, 0, 3.0f);
+
+        }
+    }
+
+   
 }
