@@ -97,14 +97,16 @@ private:
 	double theta;
 
 	FVector AvoidVector;
-	double MaxAvoidRange = 1000.0;
+	double MaxAvoidRange = 200.0;
 
 	FVector PredictiveAvoidVector;
 
-	double AvoidScaleFactor = 3.0;
+	double AvoidScaleFactor = 200.0;
 	double ToSplinePriority = 0.01;
 	double SplineTangentFactor = 1.0;
-	double PreviousVectorFactor = 10.0;
+	double PreviousVectorFactor = 100.0;
+
+	double PredictiveAvoidScaleFactor = 50000.0f;
 
 	TArray<AActor*> Avoid;
 
