@@ -66,6 +66,7 @@ private:
 
 	double distanceToContact = 100.0;
 	double MoveSpeed = 200.0;
+	double SpeedMultiplier = 1.0;
 	double IdleMaxTime = 5.0;
 	double IdleMinTime = 1.0;
 	double IdleCurrentTime = 10.0;
@@ -130,6 +131,7 @@ private:
 
 	void CalculateAvoid();
 	void CalculatePredictiveAvoid();
+	void CalculateCatchUp();
 
 protected:
 	// Called when the game starts or when spawned

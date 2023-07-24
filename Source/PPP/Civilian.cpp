@@ -50,7 +50,7 @@ void ACivilian::BeginPlay()
     SetActorLocation(StartNode->GetActorLocation());
 	Path.Add(StartNode);
 
-    Speed = MoveSpeed;
+    Speed = MoveSpeed * SpeedMultiplier;
 
     UGameInstance* GameInstance = GetWorld()->GetGameInstance();
     if (GameInstance)
@@ -72,7 +72,7 @@ void ACivilian::Tick(float DeltaTime)
     switch(state)
     {
     case CivilianStates::Pathing:
-        Speed = MoveSpeed;
+        Speed = MoveSpeed * SpeedMultiplier;
 
         // Move Towards Target
         DesiredDirectionVector = (Path[0]->GetActorLocation() - GetActorLocation());
@@ -137,8 +137,11 @@ void ACivilian::Tick(float DeltaTime)
         //DirectionVector = ((DirectionVector * PreviousVectorFactor) + (SplineTangent * SplineTangentFactor) + (ToSpline * ToSplinePriority) + AvoidVector).GetSafeNormal();
         DirectionVector = ((DirectionVector * PreviousVectorFactor) + (SplineTangent * SplineTangentFactor) + (ToSpline * ToSplinePriority) + (PredictiveAvoidVector * PredictiveAvoidScaleFactor) + AvoidVector).GetSafeNormal();
         SetActorRotation(DirectionVector.Rotation());
-        NewLocation = GetActorLocation() + (DirectionVector * Speed * DeltaTime);
-        GetComponentByClass<UAvoid>()->SetVelocity(DirectionVector * Speed);
+
+        CalculateCatchUp();
+
+        NewLocation = GetActorLocation() + (DirectionVector * Speed * DeltaTime * SpeedMultiplier);
+        GetComponentByClass<UAvoid>()->SetVelocity(DirectionVector * Speed * SpeedMultiplier);
         NewLocation.Z = HeightOffGround;
         SetActorLocation(NewLocation);
 
@@ -512,4 +515,26 @@ void ACivilian::CalculatePredictiveAvoid()
     }
 
     PredictiveAvoidVector.Z = 0.0;
+}
+
+void ACivilian::CalculateCatchUp()
+{
+    SpeedMultiplier = 1.0;
+    bool crowd = false;
+    double ClosestFollowDistance = 1000000;
+    for (auto avoid : Avoid)
+    {
+        FVector ToAvoid = avoid->GetActorLocation() - GetActorLocation();
+        FVector ToAvoidNorm = ToAvoid;
+        ToAvoidNorm.Normalize();
+        if (ToAvoid.Length() < 500.0 && ToAvoidNorm.Dot(DirectionVector) > 0.85) 
+        {
+            crowd = true;
+            ClosestFollowDistance = FMath::Min(ClosestFollowDistance, ToAvoid.Length());
+        }
+    }
+    if (crowd && ClosestFollowDistance > 200.0)
+    {
+        SpeedMultiplier = 2.0;
+    }
 }
