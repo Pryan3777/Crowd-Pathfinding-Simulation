@@ -125,23 +125,23 @@ void ACivilian::Tick(float DeltaTime)
         ToSpline = (SplinePoint - (GetActorLocation()));
         ToSpline.Z = 0.0f;
 
-        DrawDebugSphere(GetWorld(), SplinePoint + FVector(0.0f, 0.0f, 250.0f), 25.0f, 16, FColor::Cyan, false, -1.f, 0, 0.f);
+        if (draw)DrawDebugSphere(GetWorld(), SplinePoint + FVector(0.0f, 0.0f, 250.0f), 25.0f, 16, FColor::Cyan, false, -1.f, 0, 0.f);
 
-        DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f) + (SplineTangent * 100.0f), FColor::Red, false, -1.0f, 0, 3.0f);
-        DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f) + (ToSpline * 100.0f), FColor::Blue, false, -1.0f, 0, 3.0f);
+        if (draw)DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f) + (SplineTangent * 100.0f), FColor::Red, false, -1.0f, 0, 3.0f);
+        if (draw)DrawDebugLine(GetWorld(), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f), GetActorLocation() + FVector(0.0f, 0.0f, 150.0f) + (ToSpline * 100.0f), FColor::Blue, false, -1.0f, 0, 3.0f);
         DrawDebugSpline();
 
         CalculateAvoid();
         CalculatePredictiveAvoid();
 
         //DirectionVector = ((DirectionVector * PreviousVectorFactor) + (SplineTangent * SplineTangentFactor) + (ToSpline * ToSplinePriority) + AvoidVector).GetSafeNormal();
-        DirectionVector = ((DirectionVector * PreviousVectorFactor) + (SplineTangent * SplineTangentFactor) + (ToSpline * ToSplinePriority) + (PredictiveAvoidVector * PredictiveAvoidScaleFactor) + AvoidVector).GetSafeNormal();
+        DirectionVector = ((DirectionVector * PreviousVectorFactor) + (SplineTangent * SplineTangentFactor) + (ToSpline * ToSplinePriority) + (PredictiveAvoidVector * PredictiveAvoidScaleFactor) + (AvoidVector * AvoidScaleFactor)).GetSafeNormal();
         SetActorRotation(DirectionVector.Rotation());
 
         CalculateCatchUp();
 
-        NewLocation = GetActorLocation() + (DirectionVector * Speed * DeltaTime * SpeedMultiplier);
-        GetComponentByClass<UAvoid>()->SetVelocity(DirectionVector * Speed * SpeedMultiplier);
+        NewLocation = GetActorLocation() + (DirectionVector * Speed * DeltaTime);
+        GetComponentByClass<UAvoid>()->SetVelocity(DirectionVector * Speed);
         NewLocation.Z = HeightOffGround;
         SetActorLocation(NewLocation);
 
@@ -435,7 +435,7 @@ void ACivilian::DrawDebugSpline()
     int points = 100;
     for (int i = 0; i < points; i++)
     {
-        DrawDebugLine(GetWorld(), SplineComponent->GetLocationAtSplineInputKey(((float)i) / (points + 1), ESplineCoordinateSpace::World) + FVector(0.0f, 0.0f, 250.0f), SplineComponent->GetLocationAtSplineInputKey(((float)(i + 1)) / (points + 1), ESplineCoordinateSpace::World) + FVector(0.0f, 0.0f, 250.0f), FColor::Green, false, -1.0f, 0, 3.0f);
+        if(draw)DrawDebugLine(GetWorld(), SplineComponent->GetLocationAtSplineInputKey(((float)i) / (points + 1), ESplineCoordinateSpace::World) + FVector(0.0f, 0.0f, 250.0f), SplineComponent->GetLocationAtSplineInputKey(((float)(i + 1)) / (points + 1), ESplineCoordinateSpace::World) + FVector(0.0f, 0.0f, 250.0f), FColor::Green, false, -1.0f, 0, 3.0f);
     }
 }
 
@@ -465,7 +465,7 @@ void ACivilian::CalculateAvoid()
             if (distance < MaxAvoidRange)
             {
                 avoidCount++;
-                DrawDebugLine(GetWorld(), myLocation + FVector(0.0f, 0.0f, 250.0f), otherLocation + FVector(0.0f, 0.0f, 250.0f), FColor::Purple, false, -1.0f, 0, 10.0f);
+                if(draw)DrawDebugLine(GetWorld(), myLocation + FVector(0.0f, 0.0f, 250.0f), otherLocation + FVector(0.0f, 0.0f, 250.0f), FColor::Purple, false, -1.0f, 0, 10.0f);
                 
                 AvoidVector += (GetActorForwardVector().Dot(-avoid->GetActorForwardVector()) + 2.0) * GetActorForwardVector().Dot(-otherToMy) * otherToMy * pow(((MaxAvoidRange - distance) / MaxAvoidRange), 3.0 );
             }
@@ -476,7 +476,7 @@ void ACivilian::CalculateAvoid()
     {
         AvoidVector /= avoidCount;
     }
-    AvoidVector *= AvoidScaleFactor;
+    AvoidVector;
     
 }
 
@@ -492,6 +492,12 @@ void ACivilian::CalculatePredictiveAvoid()
         {
             FVector OtherPosition = avoid->GetActorLocation();
             FVector OtherVelocity = avoid->GetComponentByClass<UAvoid>()->GetVelocity();
+            FVector MyNormalizedVelocity = GetComponentByClass<UAvoid>()->GetVelocity();
+            FVector OtherNormalizedVelocity = GetComponentByClass<UAvoid>()->GetVelocity();
+            FVector ToOtherNormalized = OtherPosition - GetActorLocation();
+            MyNormalizedVelocity.Normalize();
+            OtherNormalizedVelocity.Normalize();
+            ToOtherNormalized.Normalize();
             double Uax = SelfPosition.X;
             double Ubx = OtherPosition.X;
             double Uay = SelfPosition.Y;
@@ -501,12 +507,12 @@ void ACivilian::CalculatePredictiveAvoid()
             double Vay = SelfVelocity.Y;
             double Vby = OtherVelocity.Y;
             double t = -(((Uax - Ubx) * (Vax - Vbx)) + ((Uay - Uby) * (Vay - Vby))) / (((Vax - Vbx) * (Vax - Vbx)) + ((Vay - Vby) * (Vay - Vby)));
-            if (t <= 0)
+            if (t <= 0 || (MyNormalizedVelocity.Dot(OtherNormalizedVelocity)>.9 && MyNormalizedVelocity.Dot(ToOtherNormalized) > .9))
             {
                 break;
             }
-            DrawDebugLine(GetWorld(), SelfPosition + FVector(0,0,25.0), SelfPosition + (SelfVelocity * t) + FVector(0, 0, 25.0), FColor::Orange, false, -1.0f, 0, 3.0f);
-            DrawDebugLine(GetWorld(), OtherPosition + FVector(0, 0, 25.0), OtherPosition + (OtherVelocity * t) + FVector(0, 0, 25.0), FColor::Orange, false, -1.0f, 0, 3.0f);
+            if (draw)DrawDebugLine(GetWorld(), SelfPosition + FVector(0,0,25.0), SelfPosition + (SelfVelocity * t) + FVector(0, 0, 25.0), FColor::Orange, false, -1.0f, 0, 3.0f);
+            if (draw)DrawDebugLine(GetWorld(), OtherPosition + FVector(0, 0, 25.0), OtherPosition + (OtherVelocity * t) + FVector(0, 0, 25.0), FColor::Orange, false, -1.0f, 0, 3.0f);
             FVector CollisionVector = (SelfPosition + (t * SelfVelocity)) - (OtherPosition + (t * OtherVelocity));
             double CollisionVectorMagnitude = CollisionVector.Length();
             CollisionVector.Normalize();
@@ -519,22 +525,60 @@ void ACivilian::CalculatePredictiveAvoid()
 
 void ACivilian::CalculateCatchUp()
 {
-    SpeedMultiplier = 1.0;
     bool crowd = false;
     double ClosestFollowDistance = 1000000;
-    for (auto avoid : Avoid)
+    if (SpeedMultiplier < 1.5)
     {
-        FVector ToAvoid = avoid->GetActorLocation() - GetActorLocation();
-        FVector ToAvoidNorm = ToAvoid;
-        ToAvoidNorm.Normalize();
-        if (ToAvoid.Length() < 500.0 && ToAvoidNorm.Dot(DirectionVector) > 0.85) 
+        for (auto avoid : Avoid)
         {
-            crowd = true;
-            ClosestFollowDistance = FMath::Min(ClosestFollowDistance, ToAvoid.Length());
+            FVector ToAvoid = avoid->GetActorLocation() - GetActorLocation();
+            FVector ToAvoidNorm = ToAvoid;
+            FVector OtherAvoidVector = avoid->GetComponentByClass<UAvoid>()->GetVelocity();
+            FVector MyVector = GetComponentByClass<UAvoid>()->GetVelocity();
+            ToAvoidNorm.Normalize();
+            AvoidVector.Normalize();
+            OtherAvoidVector.Normalize();
+            MyVector.Normalize();
+            if (ToAvoid.Length() < 1000.0 && ToAvoidNorm.Dot(DirectionVector) > 0.80 && OtherAvoidVector.Dot(MyVector) > 0.90)
+            {
+                crowd = true;
+                ClosestFollowDistance = FMath::Min(ClosestFollowDistance, ToAvoid.Length());
+            }
+        }
+        if (crowd && ClosestFollowDistance > 400.0)
+        {
+            SpeedMultiplier = 2.0;
+        }
+        else
+        {
+            SpeedMultiplier = 1.0;
         }
     }
-    if (crowd && ClosestFollowDistance > 200.0)
+    else
     {
-        SpeedMultiplier = 2.0;
+        for (auto avoid : Avoid)
+        {
+            FVector ToAvoid = avoid->GetActorLocation() - GetActorLocation();
+            FVector ToAvoidNorm = ToAvoid;
+            FVector OtherAvoidVector = avoid->GetComponentByClass<UAvoid>()->GetVelocity();
+            FVector MyVector = GetComponentByClass<UAvoid>()->GetVelocity();
+            OtherAvoidVector.Normalize();
+            MyVector.Normalize();
+            AvoidVector.Normalize();
+            ToAvoidNorm.Normalize();
+            if (ToAvoid.Length() < 1000.0 && ToAvoidNorm.Dot(DirectionVector) > 0.70 && OtherAvoidVector.Dot(MyVector) > 0.80)
+            {
+                crowd = true;
+                ClosestFollowDistance = FMath::Min(ClosestFollowDistance, ToAvoid.Length());
+            }
+        }
+        if (crowd && ClosestFollowDistance > 250.0)
+        {
+            SpeedMultiplier = 2.0;
+        }
+        else
+        {
+            SpeedMultiplier = 1.0;
+        }
     }
 }

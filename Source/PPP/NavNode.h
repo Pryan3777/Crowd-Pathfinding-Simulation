@@ -33,6 +33,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Node")
 		double SmoothingRadius = 100.0;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Display")
+		bool draw = true;
+
 	TArray<ANavNode*> ConnectedNodesPast;
 
 	USplineComponent* SplineComponent;

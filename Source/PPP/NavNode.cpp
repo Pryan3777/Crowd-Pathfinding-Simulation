@@ -272,7 +272,7 @@ void ANavNode::UpdateColor()
 
 void ANavNode::DrawCircleAroundActor()
 {
-    if (GetWorld())
+    if (GetWorld() && draw)
     {
         const int32 NumPoints = 32;
         const float AngleIncrement = 2.0f * PI / static_cast<float>(NumPoints);

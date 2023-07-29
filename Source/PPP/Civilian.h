@@ -46,6 +46,9 @@ public:
 	UPROPERTY(EditAnywhere, BlueprintReadOnly, Category = "Spline")
 		USplineComponent* SplineComponent;
 
+	UPROPERTY(EditAnywhere, BlueprintReadWrite, Category = "Display")
+		bool draw = true;
+
 private:
 	USkeletalMesh* SkeletalMesh;
 	USkeletalMeshComponent* SkeletalMeshComponent;
@@ -98,16 +101,16 @@ private:
 	double theta;
 
 	FVector AvoidVector;
-	double MaxAvoidRange = 200.0;
+	double MaxAvoidRange = 300.0;
 
 	FVector PredictiveAvoidVector;
 
-	double AvoidScaleFactor = 200.0;
-	double ToSplinePriority = 0.01;
-	double SplineTangentFactor = 1.0;
+	double AvoidScaleFactor = 100.0;
+	double ToSplinePriority = 0.02;
+	double SplineTangentFactor = 3.0;
 	double PreviousVectorFactor = 100.0;
 
-	double PredictiveAvoidScaleFactor = 50000.0f;
+	double PredictiveAvoidScaleFactor = 100000.0f;
 
 	TArray<AActor*> Avoid;
 
